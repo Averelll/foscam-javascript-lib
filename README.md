@@ -14,7 +14,7 @@ Requirements
 
 ``iconv`` https://github.com/ashtuchkin/iconv-lite
 
-moment.js
+``moment``  http://momentjs.com/
 
 Getting Started
 ---------------
