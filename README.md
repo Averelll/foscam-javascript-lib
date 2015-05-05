@@ -14,6 +14,8 @@ Requirements
 
 ``iconv`` https://github.com/ashtuchkin/iconv-lite
 
+moment.js
+
 Getting Started
 ---------------
 Every function takes a callback function as the last argument.

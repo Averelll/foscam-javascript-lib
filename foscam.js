@@ -2,7 +2,9 @@ var http = require('http'),
     querystring =require('querystring'),
     xml2js = require('xml2js'),
     iconv = require('iconv-lite');
-
+    fs = require('fs');
+    moment = require('moment');
+    
 var parser = new xml2js.Parser();
 
 
@@ -27,17 +29,18 @@ var Foscam = {
     //    foscam = Foscam.Init('host', port, 'username', 'password')
     //    foscam.getIPInfo(console.log);
 
-    Init: function(host, port, usr, pwd) {
+    Init: function(host, port, usr, pwd, path) {
         // Initialize
         var foscam = { };
         foscam.host = host;
         foscam.port = port;
         foscam.usr = usr;
         foscam.pwd = pwd;
+        foscam.path = path;
 
         // Get camera's url.
         foscam.url = function() {
-            return "/cgi-bin/CGIProxy.fcgi?usr={2}&pwd={3}".format(foscam.host, foscam.port, foscam.usr, foscam.pwd);
+            return "/cgi-bin/CGIProxy.fcgi?usr={2}&pwd={3}".format(foscam.host, foscam.port, foscam.usr, foscam.pwd, foscam.path);
         };
 
         // Encode object into url string.
@@ -63,30 +66,48 @@ var Foscam = {
                 }
             };
 
-            result = '';
-            var req = http.request(op, function(response) {
+            result = {};
+            if (cmd != 'snapPicture2') {
+                var req = http.request(op, function(response) {
 
-                // response
-                response.setEncoding('utf8');
-                var data = '';
+                    // response
+                    response.setEncoding('utf8');
+                    var data = '';
 
-                response.on( 'data', function(chunk) { data += chunk; });
-                response.on( 'end', function() {
-                    data = data.trim();
+                    response.on( 'data', function(chunk) { data += chunk; });
+                    response.on( 'end', function() {
+                        data = data.trim();
 
-                    // parser xml to json
-                    var parxml = '';
-                    parser.on('end', function(result) {
-                        parxml = result;
-                    });
-                    parser.parseString(data);
-                    parser.reset();
-                    if ( typeof callback == 'function') { callback(cmd, parxml.CGI_Result); }
-                    result = parxml.CGI_Result;
-                });// on end
+                        // parser xml to json
+                        var parxml = '';
+                        parser.on('end', function(result) {
+                            parxml = result;
+                        });
+                        parser.parseString(data);
+                        parser.reset();
+                        if ( typeof callback == 'function') { callback(cmd, parxml.CGI_Result); }
+                        result = parxml.CGI_Result;
+                    });// on end
 
-            });// request
+                });// request
+            } else {
+                var filename = moment().format("YYYY-MM-DDTHH:MM:ss.SS")+'.jpg';
+                var filepath = foscam.path+'/'+ filename
+                var file = fs.createWriteStream(filepath);
+                var req = http.request(op, function(response) {
+                    response.on( 'data', function(data) { file.write(data) });
+                    response.on( 'end', function() {
+                        file.end();
+                        if (response.statusCode == 200) {
+                            result.result = [ '0' ];
+                            result.filepath = [ filepath ];
+                            result.filename = [ filename ];
+                        };
+                        if ( typeof callback == 'function') { callback(cmd, result); }
+                    });// on end
 
+                });// request
+            };
             req.on( 'error', function( err ) {
                 console.log( 'Connection-error:' + err );
             });
@@ -501,7 +522,11 @@ var Foscam = {
             params = {'Path': Path};
             return foscam.executeCommand('setRecordPath', params, callback);
         };
-
+        
+        foscam.snapPicture2 = function(callback) {
+            return foscam.executeCommand( 'snapPicture2', null, callback );
+        };
+                            
         return foscam;
     }
 };
