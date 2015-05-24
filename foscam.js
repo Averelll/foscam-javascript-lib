@@ -91,7 +91,7 @@ var Foscam = {
 
                 });// request
             } else {
-                var filename = moment().format("YYYY-MM-DDTHH:MM:ss.SS")+'.jpg';
+                var filename = moment().format("YYYY-MM-DDTHH:mm:ss.SS")+'.jpg';
                 var filepath = foscam.path+'/'+ filename
                 var file = fs.createWriteStream(filepath);
                 var req = http.request(op, function(response) {
